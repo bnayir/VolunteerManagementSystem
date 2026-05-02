@@ -22,7 +22,7 @@ VolunteerConnect; ölçeklenebilir bir **Merkezi API**, dinamik bir **Web Yönet
 ##  Teknoloji Yığını ve Mimari
 Sistem, her platformun bağımsız olarak çalıştığı ancak merkezi bir servis katmanı üzerinden senkronize kaldığı **Ayrıştırılmış (Decoupled) Mimari** ile inşa edilmiştir.
 
-### ⚙️ Back End
+### ⚙️ Backend
 *   **Framework:** .NET 8 Web API
 *   **Veritabanı:** MS SQL Server & Entity Framework Core (Code First)
 *   **Güvenlik:** JWT tabanlı Kimlik Doğrulama ve Rol Tabanlı Yetkilendirme (RBAC)
@@ -34,7 +34,7 @@ Sistem, her platformun bağımsız olarak çalıştığı ancak merkezi bir serv
 *   **Ağ Yönetimi:** API iletişimi için özel Interceptor yapılı Axios
 *   **Depolama:** Güvenli yerel oturum yönetimi için AsyncStorage.
 
-###  Front End 
+###  Frontend 
 *   **Teknoloji:** React.js / Vite
 *   **UI/UX:** Masaüstü yönetimi için duyarlı (Responsive) tasarım
 *   **Özellikler:** Panel analitikleri ve etkinlik yönetimi için tam CRUD işlemleri.
