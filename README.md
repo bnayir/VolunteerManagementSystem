@@ -2,7 +2,7 @@
   <strong>🇬🇧 English</strong> | <a href="README.tr.md">🇹🇷 Türkçe</a>
 </p>
 
-#  VolunteerConnect: A Multi-Platform Ecosystem
+#  Volunteer Management System: A Multi-Platform Ecosystem
 
 > **A comprehensive end-to-end management solution** designed to bridge the gap between organizers and volunteers through a modern technological framework.
 
