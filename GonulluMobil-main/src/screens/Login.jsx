@@ -8,26 +8,48 @@ const Login = ({ navigation }) => {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
 
-   const handleLogin = async () => {
-  try {
-    const res = await api.post('/Auth/login', { email, password });
-    const { token, role } = res.data;
+    const handleLogin = async () => {
+        if (!email || !password) {
+            Alert.alert("Uyarı", "Lütfen e-posta ve şifrenizi girin.");
+            return;
+        }
 
-    await AsyncStorage.setItem('userToken', token);
-    await AsyncStorage.setItem('userRole', role);
+        setLoading(true);
+        try {
+            // Gerçek C# Backend'ine istek atıyoruz
+            const res = await api.post('/Auth/login', { email, password });
+            
+            // Backend'den gelen token ve rolü alıyoruz
+            const { token, role } = res.data;
 
-    if (role === 'Admin' || role === 'SuperAdmin') {
-      navigation.replace('AdminPanel'); 
-    } else if (role === 'StkAdmin') {
-      navigation.replace('StkDashboard'); 
-    } else {
-      navigation.replace('MainTabs'); 
-    }
+            await AsyncStorage.setItem('userToken', token);
+            await AsyncStorage.setItem('userRole', role || 'User'); // Eğer rol gelmezse varsayılan 'User' (Gönüllü) olsun
 
-  } catch (err) {
-    Alert.alert("Hata", "Giriş bilgileri hatalı.");
-  }
-};
+            // Gelen role göre gerçek yönlendirme
+            if (role === 'Admin' || role === 'SuperAdmin') {
+                navigation.replace('AdminPanel'); 
+            } else if (role === 'StkAdmin') {
+                navigation.replace('StkDashboard'); 
+            } else {
+                // Gönüllü (User) girişi başarılıysa ana sekmelere git!
+                navigation.replace('MainTabs'); 
+            }
+
+        } catch (err) {
+            // Hatanın tam olarak ne olduğunu terminale ve ekrana yazdırıyoruz!
+            console.log("Gerçek Login Hatası:", err.message);
+            
+            if (err.response) {
+                // Backend'den cevap gelmiş ama şifre yanlış vb.
+                Alert.alert("Hata", err.response.data?.message || "Giriş bilgileri hatalı.");
+            } else {
+                // Backend'e hiç ulaşılamamış (IP hatası)
+                Alert.alert("Bağlantı Hatası", "Sunucuya ulaşılamıyor. Lütfen API adresini kontrol edin.");
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <View style={styles.loginContainer}>

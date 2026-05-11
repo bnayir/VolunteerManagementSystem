@@ -10,27 +10,30 @@ import AdminPanel from './src/screens/AdminPanel';
 import CreateEvent from './src/screens/CreateEvent';
 import ManageApplications from './src/screens/ManageApplications';
 import ManageUsers from './src/screens/ManageUsers';
-import EventDetail from './src/screens/EventDetail'; 
+import EventDetail from './src/screens/EventDetail';
+import Onboarding from './src/screens/Onboarding';
+
 const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      {/* 🌟 initialRouteName eklendi: Uygulama ilk bu sayfa ile başlayacak */}
+      <Stack.Navigator initialRouteName="Onboarding" screenOptions={{ headerShown: false }}>
+        
+        {/* 🌟 Onboarding sayfası buraya eklendi */}
+        <Stack.Screen name="Onboarding" component={Onboarding} />
+        
         <Stack.Screen name="Login" component={Login} />
         <Stack.Screen name="MainTabs" component={MainTabs} />
         <Stack.Screen name="EditProfile" component={EditProfile} options={{ title: 'Profili Düzenle', headerShown: true }} />
-<Stack.Screen name="Notifications" component={Notifications} options={{ title: 'Bildirimler', headerShown: true }} />
-<Stack.Screen name="Privacy" component={Privacy} options={{ title: 'Gizlilik Politikası', headerShown: true }} />
-<Stack.Screen name="AdminPanel" component={AdminPanel} />
-  <Stack.Screen name="CreateEvent" component={CreateEvent} />
-  <Stack.Screen name="EventDetail" component={EventDetail} options={{ title: 'Etkinlik Detayı' }} />
-  <Stack.Screen 
-  name="ManageApplications" 
-  component={ManageApplications} 
-  options={{ title: 'Başvuruları Yönet' }} 
-/>
-<Stack.Screen name="ManageUsers" component={ManageUsers} options={{ title: 'Gönüllü Listesi' }} />
+        <Stack.Screen name="Notifications" component={Notifications} options={{ title: 'Bildirimler', headerShown: true }} />
+        <Stack.Screen name="Privacy" component={Privacy} options={{ title: 'Gizlilik Politikası', headerShown: true }} />
+        <Stack.Screen name="AdminPanel" component={AdminPanel} />
+        <Stack.Screen name="CreateEvent" component={CreateEvent} />
+        <Stack.Screen name="EventDetail" component={EventDetail} options={{ title: 'Etkinlik Detayı' }} />
+        <Stack.Screen name="ManageApplications" component={ManageApplications} options={{ title: 'Başvuruları Yönet' }} />
+        <Stack.Screen name="ManageUsers" component={ManageUsers} options={{ title: 'Gönüllü Listesi' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );
