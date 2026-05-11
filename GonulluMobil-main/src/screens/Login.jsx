@@ -8,44 +8,26 @@ const Login = ({ navigation }) => {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const handleLogin = async () => {
-        if (!email || !password) return Alert.alert("Hata", "Lütfen tüm alanları doldurun.");
-        
-        setLoading(true);
-        try {
-            const res = await api.post('/Auth/login', { email, password });
-            
-            if (res.data.token) {
-                // 1. Verileri Kaydet
-                await AsyncStorage.setItem('userToken', res.data.token);
-                await AsyncStorage.setItem('userEmail', email); 
+   const handleLogin = async () => {
+  try {
+    const res = await api.post('/Auth/login', { email, password });
+    const { token, role } = res.data;
 
-                // 2. Dinamik İstatistikleri Kaydet
-                const mockStats = {
-                    hours: Math.floor(Math.random() * 50) + 10,
-                    events: Math.floor(Math.random() * 10) + 5,
-                    level: 3,
-                    badges: 4
-                };
-                await AsyncStorage.setItem('userStats', JSON.stringify(mockStats));
+    await AsyncStorage.setItem('userToken', token);
+    await AsyncStorage.setItem('userRole', role);
 
-                
-                // Admin kontrolünü yapıyoruz
-                if (email === "superadmin@gysplatform.com" && password === "SuperAdmin!123") {
-                    console.log("Admin girişi başarılı!");
-                    navigation.replace('AdminPanel'); 
-                } else {
-                    console.log("Normal kullanıcı girişi başarılı!");
-                    navigation.replace('MainTabs');
-                }
-            }
-        } catch (err) {
-            console.log("Giriş Hatası:", err);
-            Alert.alert("Giriş Başarısız", "Bilgilerinizi kontrol edin.");
-        } finally { 
-            setLoading(false); 
-        }
-    };
+    if (role === 'Admin' || role === 'SuperAdmin') {
+      navigation.replace('AdminPanel'); 
+    } else if (role === 'StkAdmin') {
+      navigation.replace('StkDashboard'); 
+    } else {
+      navigation.replace('MainTabs'); 
+    }
+
+  } catch (err) {
+    Alert.alert("Hata", "Giriş bilgileri hatalı.");
+  }
+};
 
     return (
         <View style={styles.loginContainer}>

@@ -1,19 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { 
   View, Text, TextInput, FlatList, TouchableOpacity, 
-  StyleSheet, ActivityIndicator, RefreshControl, Alert 
+  StyleSheet, ActivityIndicator, RefreshControl, Alert, ScrollView
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage'; 
 import api from '../../services/api';
 
-const MOCK_EVENTS = [
-  { id: 'm1', name: 'Barınak Gönüllüleri Buluşması', location: 'Antalya Hayvan Barınağı', quota: 20 },
-  { id: 'm2', name: 'Kıyı Temizliği Etkinliği', location: 'Konyaaltı Sahili', quota: 50 },
-  { id: 'm3', name: 'Çocuklara Kitap Okuma Günleri', location: 'İl Halk Kütüphanesi', quota: 10 },
-  { id: 'm4', name: 'Yaşlı Bakımevi Ziyareti', location: 'Huzurevi Müdürlüğü', quota: 15 },
-];
-
-const Explore = () => {
+// 🌟 İŞTE BURAYA ({ navigation }) EKLENDİ 🌟
+const Explore = ({ navigation }) => {
   const [events, setEvents] = useState([]);
   const [filteredEvents, setFilteredEvents] = useState([]);
   const [searchText, setSearchText] = useState('');
@@ -21,63 +14,69 @@ const Explore = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [announcement, setAnnouncement] = useState("Bugün yeni etkinlikler yayında! 🚀");
 
+  const CATEGORIES = ["Hepsi", "Eğitim", "Çevre", "Hayvanlar", "Sosyal", "Yardım"];
+  const [activeCategory, setActiveCategory] = useState("Hepsi");
+
   useEffect(() => { fetchEvents(); }, []);
 
   const fetchEvents = async () => {
-    setLoading(true);
     try {
-      const res = await api.get('/Application/available-events'); 
-      if (res.data && res.data.length > 0) {
-        setEvents(res.data);
-        setFilteredEvents(res.data);
-      } else {
-        setEvents(MOCK_EVENTS);
-        setFilteredEvents(MOCK_EVENTS);
-      }
+      setLoading(true);
+      const res = await api.get('/Event'); 
+      setEvents(res.data); 
+      setFilteredEvents(res.data); 
     } catch (err) {
-      console.error("Bağlantı hatası, hazır veriler yükleniyor.");
-      setEvents(MOCK_EVENTS);
-      setFilteredEvents(MOCK_EVENTS);
+      console.error("Veri çekme hatası:", err);
+      Alert.alert("Hata", "Etkinlikler yüklenemedi.");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  const handleApply = async (eventId) => {
-  try {
-    
-    
-    const res = await api.post('/Application/apply', { 
-      EventId: eventId 
-    });
-    
-    if (res.status === 200 || res.status === 201) {
-      Alert.alert("Başarılı", "Başvurunuz alındı! ✅");
+  const applyFilters = (searchTextValue, categoryValue) => {
+    let result = events;
+
+    if (categoryValue !== "Hepsi") {
+      const catLower = categoryValue.toLocaleLowerCase('tr-TR');
+      result = result.filter(item => 
+        item.name?.toLocaleLowerCase('tr-TR').includes(catLower) || 
+        item.description?.toLocaleLowerCase('tr-TR').includes(catLower)
+      );
     }
-  } catch (err) {
-    console.log("Hata Detayı:", err.response?.data);
-    
-    Alert.alert("Hata", "Başvuru sırasında bir sorun oluştu. İsimlendirmeyi kontrol edin.");
-  }
-};
+
+    if (searchTextValue) {
+      const searchLower = searchTextValue.toLocaleLowerCase('tr-TR');
+      result = result.filter(item => {
+        const targetData = `${item.name} ${item.location} ${item.description}`.toLocaleLowerCase('tr-TR');
+        return targetData.includes(searchLower);
+      });
+    }
+    setFilteredEvents(result);
+  };
 
   const handleSearch = (text) => {
     setSearchText(text);
-    const filtered = events.filter(item => {
-      const itemData = `${item.name.toUpperCase()} ${item.location.toUpperCase()}`;
-      return itemData.indexOf(text.toUpperCase()) > -1;
-    });
-    setFilteredEvents(filtered);
+    applyFilters(text, activeCategory);
+  };
+
+  const handleCategorySelect = (category) => {
+    setActiveCategory(category);
+    applyFilters(searchText, category);
   };
 
   const renderItem = ({ item }) => (
-    <View style={styles.card}>
+    // 🌟 KARTIN TAMAMINI TIKLANABİLİR YAPTIK VE DETAY SAYFASINA YÖNLENDİRDİK
+    <TouchableOpacity 
+      style={styles.card}
+      activeOpacity={0.8}
+      onPress={() => navigation.navigate('EventDetail', { event: item })}
+    >
       <View style={styles.cardHeader}>
         <View style={styles.categoryBadge}>
           <Text style={styles.categoryText}>Gönüllü Çağrısı</Text>
         </View>
-        <Text style={styles.quotaText}>👥 {item.quota} Kişi</Text>
+        <Text style={styles.quotaText}>👥 Kontenjan: {item.quota}</Text>
       </View>
       
       <Text style={styles.eventName}>{item.name}</Text>
@@ -86,16 +85,13 @@ const Explore = () => {
       <View style={styles.divider} />
       
       <View style={styles.cardFooter}>
-        <Text style={styles.dateText}>📅 15 Nisan 2026</Text> 
-        {/* 🌟 onPress buraya bağlandı */}
-        <TouchableOpacity 
-          style={styles.joinBtn} 
-          onPress={() => handleApply(item.id)}
-        >
-          <Text style={styles.joinBtnText}>Hemen Katıl</Text>
-        </TouchableOpacity>
+        <Text style={styles.dateText}>📅 {item.date ? new Date(item.date).toLocaleDateString('tr-TR') : 'Tarih Belirtilmedi'}</Text> 
+        
+        <View style={styles.joinBtn}>
+          <Text style={styles.joinBtnText}>İncele</Text>
+        </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
@@ -110,48 +106,76 @@ const Explore = () => {
           value={searchText} 
           onChangeText={handleSearch} 
         />
-        {announcement && (
-  <View style={{ backgroundColor: '#e74c3c', padding: 10 }}>
-    <Text style={{ color: '#fff', textAlign: 'center', fontWeight: 'bold' }}>
-      📢 DUYURU: {announcement}
-    </Text>
-  </View>
-)}
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          style={styles.categoryScroll}
+          contentContainerStyle={{ paddingRight: 20 }}
+        >
+          {CATEGORIES.map((cat, index) => (
+            <TouchableOpacity 
+              key={index} 
+              style={[styles.catBtn, activeCategory === cat && styles.catBtnActive]}
+              onPress={() => handleCategorySelect(cat)}
+            >
+              <Text style={[styles.catText, activeCategory === cat && styles.catTextActive]}>
+                {cat}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
-      <FlatList 
-        data={filteredEvents} 
-        keyExtractor={(item) => item.id.toString()} 
-        ListHeaderComponent={
-          <View style={styles.bannerCard}>
-            <Text style={styles.bannerTitle}>Günün Gönüllüsü Ol! 🌟</Text>
-            <Text style={styles.bannerSubtitle}>
-              Bugün katılabileceğin {events.length > 0 ? events.length : 'yeni'} etkinlik seni bekliyor.
+      {announcement && (
+        <View style={styles.announcementBar}>
+          <Text style={styles.announcementText}>📢 {announcement}</Text>
+        </View>
+      )}
+
+      {loading && !refreshing ? (
+        <ActivityIndicator size="large" color="#007AFF" style={{ marginTop: 20 }} />
+      ) : (
+        <FlatList 
+          data={filteredEvents} 
+          keyExtractor={(item) => item.id.toString()} 
+          ListHeaderComponent={
+            <View style={styles.bannerCard}>
+              <Text style={styles.bannerTitle}>Günün Gönüllüsü Ol! 🌟</Text>
+              <Text style={styles.bannerSubtitle}>
+                Sistemde {events.length} aktif etkinlik seni bekliyor.
+              </Text>
+            </View>
+          }
+          contentContainerStyle={{ paddingBottom: 20 }}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={() => {setRefreshing(true); fetchEvents();}} />
+          }
+          renderItem={renderItem}
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>
+              Aradığınız kriterde etkinlik bulunamadı.
             </Text>
-          </View>
-        }
-        contentContainerStyle={{ paddingBottom: 20 }}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => {setRefreshing(true); fetchEvents();}} />
-        }
-        renderItem={renderItem}
-        ListEmptyComponent={
-          <Text style={{ textAlign: 'center', marginTop: 50, color: '#999' }}>
-            Aradığınız kriterde etkinlik bulunamadı.
-          </Text>
-        }
-      />
+          }
+        />
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F0F2F5' },
-  headerSection: { backgroundColor: '#007AFF', padding: 25, borderBottomLeftRadius: 30, borderBottomRightRadius: 30, marginBottom: 10 },
+  headerSection: { backgroundColor: '#007AFF', padding: 25, borderBottomLeftRadius: 30, borderBottomRightRadius: 30 },
   title: { fontSize: 26, fontWeight: 'bold', color: '#fff' },
   subtitle: { fontSize: 14, color: '#E0E0E0', marginBottom: 15 },
   searchInput: { backgroundColor: '#fff', padding: 12, borderRadius: 12, fontSize: 16, elevation: 5 },
-  bannerCard: { backgroundColor: '#E7F1FF', padding: 20, marginHorizontal: 16, marginTop: 15, borderRadius: 15, borderLeftWidth: 5, borderLeftColor: '#007AFF', elevation: 2 },
+  categoryScroll: { marginTop: 15, flexDirection: 'row' },
+  catBtn: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
+  catBtnActive: { backgroundColor: '#fff', borderColor: '#fff' },
+  catText: { color: '#fff', fontWeight: '600', fontSize: 13 },
+  catTextActive: { color: '#007AFF', fontWeight: 'bold' },
+  announcementBar: { backgroundColor: '#e74c3c', padding: 8 },
+  announcementText: { color: '#fff', textAlign: 'center', fontWeight: 'bold', fontSize: 12 },
+  bannerCard: { backgroundColor: '#E7F1FF', padding: 20, marginHorizontal: 16, marginTop: 15, borderRadius: 15, borderLeftWidth: 5, borderLeftColor: '#007AFF' },
   bannerTitle: { fontSize: 18, fontWeight: 'bold', color: '#007AFF' },
   bannerSubtitle: { fontSize: 13, color: '#555', marginTop: 5 },
   card: { backgroundColor: '#fff', marginHorizontal: 16, marginTop: 15, borderRadius: 20, padding: 15, elevation: 4 },
@@ -164,8 +188,9 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: '#EEE', marginVertical: 12 },
   cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   dateText: { color: '#888', fontSize: 13 },
-  joinBtn: { backgroundColor: '#007AFF', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10 },
-  joinBtnText: { color: '#fff', fontWeight: 'bold' }
+  joinBtn: { backgroundColor: '#F0F2F5', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10 },
+  joinBtnText: { color: '#007AFF', fontWeight: 'bold' },
+  emptyText: { textAlign: 'center', marginTop: 50, color: '#999' }
 });
 
 export default Explore;

@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput } from 'react-native';
+import { 
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, 
+  Alert, TextInput, StatusBar 
+} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage'; 
 import api from '../../services/api';
 
 const AdminPanel = ({ navigation }) => {
@@ -16,14 +20,19 @@ const AdminPanel = ({ navigation }) => {
   const fetchDashboardData = async () => {
     try {
       const res = await api.get('/Admin/stats'); 
-      setStats(res.data);
+      setStats({
+        eventCount: res.data.eventCount,
+        pendingApps: res.data.pendingApps,
+        participationRate: res.data.participationRate || 85 
+      });
     } catch (err) {
-      setStats({ eventCount: 8, pendingApps: 3, participationRate: 74.5 }); 
+      console.log("Stats hatası:", err);
+      setStats({ eventCount: 12, pendingApps: 8, participationRate: 92 });
     }
   };
 
   const handleSendAnnouncement = async () => {
-    if (!announcement) return Alert.alert("Uyarı", "Lütfen bir mesaj yazın.");
+    if (!announcement.trim()) return Alert.alert("Uyarı", "Lütfen bir mesaj yazın.");
     try {
       await api.post('/Admin/send-announcement', { message: announcement });
       Alert.alert("Başarılı", "Tüm gönüllülere duyuru geçildi! 📢");
@@ -34,11 +43,27 @@ const AdminPanel = ({ navigation }) => {
     }
   };
 
+  const handleLogout = () => {
+    Alert.alert("Güvenli Çıkış", "Yönetici oturumunu kapatmak istiyor musunuz?", [
+      { text: "İptal", style: "cancel" },
+      { 
+        text: "Çıkış Yap", 
+        style: "destructive",
+        onPress: async () => {
+          await AsyncStorage.clear(); 
+          navigation.reset({ index: 0, routes: [{ name: 'Login' }] }); 
+        }
+      }
+    ]);
+  };
+
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#1a1a1a" /> 
+
       <View style={styles.darkHeader}>
         <Text style={styles.headerTitle}>Süper Admin Paneli</Text>
-        <Text style={styles.headerStatus}>Sistem Aktif • v1.0.4</Text>
+        <Text style={styles.headerStatus}>🟢 Sistem Aktif • v1.0.4</Text>
       </View>
 
       <View style={styles.statsContainer}>
@@ -47,8 +72,8 @@ const AdminPanel = ({ navigation }) => {
           <Text style={styles.statLabel}>Aktif Etkinlik</Text>
         </View>
         <View style={styles.statBox}>
-          <Text style={styles.statNumber}>{stats.pendingApps}</Text>
-          <Text style={styles.statLabel}>Bekleyen Başvuru</Text>
+          <Text style={[styles.statNumber, { color: '#FF9500' }]}>{stats.pendingApps}</Text>
+          <Text style={styles.statLabel}>Onay Bekleyen</Text>
         </View>
       </View>
 
@@ -65,9 +90,9 @@ const AdminPanel = ({ navigation }) => {
             <Text style={styles.reportText}>En Aktif Şehir:</Text>
             <Text style={styles.reportValue}>Antalya</Text>
           </View>
-          <View style={styles.reportRow}>
+          <View style={[styles.reportRow, { borderBottomWidth: 0 }]}>
             <Text style={styles.reportText}>Ortalama Gönüllü Puanı:</Text>
-            <Text style={styles.reportValue}>4.9</Text>
+            <Text style={styles.reportValue}>4.9 / 5.0</Text>
           </View>
         </View>
 
@@ -90,32 +115,43 @@ const AdminPanel = ({ navigation }) => {
         <Text style={styles.sectionTitle}>Hızlı İşlemler</Text>
 
         <TouchableOpacity style={styles.menuCard} onPress={() => navigation.navigate('CreateEvent')}>
-          <Text style={styles.menuIcon}>➕</Text>
-          <View>
+          <View style={[styles.iconWrapper, { backgroundColor: '#E3F2FD' }]}>
+            <Text style={styles.menuIcon}>➕</Text>
+          </View>
+          <View style={styles.menuTextContainer}>
             <Text style={styles.menuText}>Yeni Etkinlik Ekle</Text>
             <Text style={styles.menuSubText}>Sisteme yeni bir görev tanımla</Text>
           </View>
+          <Text style={styles.arrowIcon}>›</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.menuCard} onPress={() => navigation.navigate('ManageApplications')}>
-          <Text style={styles.menuIcon}>⚖️</Text>
-          <View>
+          <View style={[styles.iconWrapper, { backgroundColor: '#FFF4E5' }]}>
+            <Text style={styles.menuIcon}>⚖️</Text>
+          </View>
+          <View style={styles.menuTextContainer}>
             <Text style={styles.menuText}>Başvuruları Yönet</Text>
             <Text style={styles.menuSubText}>Gelen talepleri onayla veya reddet</Text>
           </View>
+          <Text style={styles.arrowIcon}>›</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.menuCard} onPress={() => navigation.navigate('ManageUsers')}>
-          <Text style={styles.menuIcon}>👥</Text>
-          <View>
+          <View style={[styles.iconWrapper, { backgroundColor: '#E8F9ED' }]}>
+            <Text style={styles.menuIcon}>👥</Text>
+          </View>
+          <View style={styles.menuTextContainer}>
             <Text style={styles.menuText}>Gönüllü Listesi</Text>
             <Text style={styles.menuSubText}>Tüm kayıtlı kullanıcıları yönet</Text>
           </View>
+          <Text style={styles.arrowIcon}>›</Text>
         </TouchableOpacity>
         
-        <TouchableOpacity style={[styles.menuCard, {marginTop: 20, marginBottom: 40}]} onPress={() => navigation.replace('Login')}>
-          <Text style={styles.menuIcon}>🚪</Text>
-          <View>
+        <TouchableOpacity style={[styles.menuCard, {marginTop: 10, marginBottom: 40, borderColor: '#FFEBEE', borderWidth: 1}]} onPress={handleLogout}>
+          <View style={[styles.iconWrapper, { backgroundColor: '#FFEBEE' }]}>
+            <Text style={styles.menuIcon}>🚪</Text>
+          </View>
+          <View style={styles.menuTextContainer}>
             <Text style={[styles.menuText, {color: '#e74c3c'}]}>Çıkış Yap</Text>
             <Text style={styles.menuSubText}>Güvenli şekilde oturumu kapat</Text>
           </View>
@@ -127,28 +163,31 @@ const AdminPanel = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f0f2f5' },
-  darkHeader: { backgroundColor: '#1a1a1a', padding: 40, borderBottomLeftRadius: 30, borderBottomRightRadius: 30 },
-  headerTitle: { color: '#fff', fontSize: 24, fontWeight: 'bold' },
-  headerStatus: { color: '#4cd964', fontSize: 12, marginTop: 5 },
-  statsContainer: { flexDirection: 'row', justifyContent: 'space-around', marginTop: -30, paddingHorizontal: 20 },
-  statBox: { backgroundColor: '#fff', padding: 20, borderRadius: 15, width: '45%', elevation: 5, alignItems: 'center' },
-  statNumber: { fontSize: 22, fontWeight: 'bold', color: '#1a1a1a' },
-  statLabel: { fontSize: 12, color: '#666' },
+  container: { flex: 1, backgroundColor: '#F0F2F5' },
+  darkHeader: { backgroundColor: '#1C1C1E', paddingTop: 60, paddingBottom: 50, paddingHorizontal: 30, borderBottomLeftRadius: 40, borderBottomRightRadius: 40 },
+  headerTitle: { color: '#fff', fontSize: 26, fontWeight: 'bold' },
+  headerStatus: { color: '#34C759', fontSize: 13, marginTop: 8, fontWeight: '600' },
+  statsContainer: { flexDirection: 'row', justifyContent: 'space-around', marginTop: -35, paddingHorizontal: 15 },
+  statBox: { backgroundColor: '#fff', paddingVertical: 20, borderRadius: 20, width: '46%', elevation: 6, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10, alignItems: 'center' },
+  statNumber: { fontSize: 26, fontWeight: '900', color: '#007AFF' },
+  statLabel: { fontSize: 13, color: '#666', marginTop: 5, fontWeight: '500' },
   menuScroll: { padding: 20 },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 10, marginTop: 10 },
-  menuCard: { flexDirection: 'row', backgroundColor: '#fff', padding: 18, borderRadius: 15, marginBottom: 12, alignItems: 'center', elevation: 2 },
-  menuIcon: { fontSize: 25, marginRight: 15 },
-  menuText: { fontSize: 16, fontWeight: 'bold' },
-  menuSubText: { fontSize: 12, color: '#888' },
-  reportSection: { backgroundColor: '#fff', padding: 15, borderRadius: 15, elevation: 3, marginBottom: 20 },
-  reportRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f1f1f1' },
-  reportText: { color: '#555', fontSize: 14 },
-  reportValue: { fontWeight: 'bold', color: '#007AFF' },
-  announcementCard: { backgroundColor: '#fff', padding: 15, borderRadius: 15, elevation: 3, marginBottom: 20 },
-  announcementInput: { backgroundColor: '#f8f9fa', borderRadius: 10, padding: 12, marginTop: 10, height: 70, textAlignVertical: 'top', color: '#333', borderWidth: 1, borderColor: '#eee' },
-  sendBtn: { backgroundColor: '#e74c3c', padding: 12, borderRadius: 10, marginTop: 10, alignItems: 'center' },
-  sendBtnText: { color: '#fff', fontWeight: 'bold' }
+  sectionTitle: { fontSize: 17, fontWeight: 'bold', color: '#1C1C1E', marginBottom: 12, marginTop: 10, letterSpacing: 0.5 },
+  reportSection: { backgroundColor: '#fff', padding: 18, borderRadius: 20, elevation: 3, marginBottom: 25 },
+  reportRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F2F2F7' },
+  reportText: { color: '#666', fontSize: 14, fontWeight: '500' },
+  reportValue: { fontWeight: 'bold', color: '#007AFF', fontSize: 14 },
+  announcementCard: { backgroundColor: '#fff', padding: 18, borderRadius: 20, elevation: 3, marginBottom: 25 },
+  announcementInput: { backgroundColor: '#F2F2F7', borderRadius: 12, padding: 15, marginTop: 5, height: 80, textAlignVertical: 'top', color: '#333', fontSize: 14 },
+  sendBtn: { backgroundColor: '#007AFF', padding: 14, borderRadius: 12, marginTop: 15, alignItems: 'center' },
+  sendBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15, letterSpacing: 1 },
+  menuCard: { flexDirection: 'row', backgroundColor: '#fff', padding: 15, borderRadius: 20, marginBottom: 15, alignItems: 'center', elevation: 2 },
+  iconWrapper: { width: 50, height: 50, borderRadius: 25, justifyContent: 'center', alignItems: 'center', marginRight: 15 },
+  menuIcon: { fontSize: 22 },
+  menuTextContainer: { flex: 1 },
+  menuText: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E', marginBottom: 3 },
+  menuSubText: { fontSize: 12, color: '#8E8E93' },
+  arrowIcon: { fontSize: 24, color: '#C7C7CC', marginLeft: 10 }
 });
 
 export default AdminPanel;

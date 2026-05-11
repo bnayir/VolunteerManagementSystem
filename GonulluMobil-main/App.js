@@ -10,7 +10,7 @@ import AdminPanel from './src/screens/AdminPanel';
 import CreateEvent from './src/screens/CreateEvent';
 import ManageApplications from './src/screens/ManageApplications';
 import ManageUsers from './src/screens/ManageUsers';
-
+import EventDetail from './src/screens/EventDetail'; 
 const Stack = createNativeStackNavigator();
 
 export default function App() {
@@ -24,6 +24,7 @@ export default function App() {
 <Stack.Screen name="Privacy" component={Privacy} options={{ title: 'Gizlilik Politikası', headerShown: true }} />
 <Stack.Screen name="AdminPanel" component={AdminPanel} />
   <Stack.Screen name="CreateEvent" component={CreateEvent} />
+  <Stack.Screen name="EventDetail" component={EventDetail} options={{ title: 'Etkinlik Detayı' }} />
   <Stack.Screen 
   name="ManageApplications" 
   component={ManageApplications} 
