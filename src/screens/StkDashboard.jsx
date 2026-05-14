@@ -58,7 +58,7 @@ const StkDashboard = ({ navigation }) => {
           </TouchableOpacity>
 
           <TouchableOpacity 
-  style={styles.menuCard} 
+  style={styles.card} 
   onPress={() => navigation.navigate('StkEvents')} 
 >
    <Text style={styles.cardIcon}>📩</Text>
@@ -66,12 +66,13 @@ const StkDashboard = ({ navigation }) => {
 </TouchableOpacity>
 
 
-          <TouchableOpacity style={styles.card}>
+          <TouchableOpacity style={styles.card}  onPress={() => navigation.navigate('StkStatistics')} 
+>
             <Text style={styles.cardIcon}>📊</Text>
             <Text style={styles.cardTitle}>İstatistikler</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.card}>
+          <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('StkProfile')}>
             <Text style={styles.cardIcon}>⚙️</Text>
             <Text style={styles.cardTitle}>Kurum Profili</Text>
           </TouchableOpacity>

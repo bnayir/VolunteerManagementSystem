@@ -17,6 +17,8 @@ import StkDashboard from './src/screens/StkDashboard';
 import CreateAdvert from './src/screens/CreateAdvert';
 import ManageApplicationsSTK from './src/screens/ManageApplicationsSTK';
 import StkEvents from './src/screens/StkEvents';
+import StkStatistics from './src/screens/StkStatistics';
+import StkProfile from './src/screens/StkProfile';
 const Stack = createNativeStackNavigator();
 
 export default function App() {
@@ -34,6 +36,8 @@ export default function App() {
         <Stack.Screen name="AdminPanel" component={AdminPanel} />
         <Stack.Screen name="CreateEvent" component={CreateEvent} />
         <Stack.Screen name="Register" component={Register} />
+        <Stack.Screen name="StkStatistics" component={StkStatistics} />
+        <Stack.Screen name="StkProfile" component={StkProfile} />
 <Stack.Screen 
   name="StkDashboard" 
   component={StkDashboard} 

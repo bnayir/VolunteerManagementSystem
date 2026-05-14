@@ -70,17 +70,20 @@ const Profile = () => {
   };
 
   const handleLogout = async () => {
-    Alert.alert("Çıkış", "Hesabınızdan çıkış yapmak istediğinize emin misiniz?", [
-      { text: "İptal", style: "cancel" },
-      { 
-        text: "Çıkış Yap", 
-        style: "destructive",
-        onPress: async () => {
-          await AsyncStorage.clear();
-          navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
-        }
-      }
-    ]);
+    console.log("🚪 Çıkış işlemi başlatıldı...");
+    
+    try {
+      
+      await AsyncStorage.removeItem('user');
+      await AsyncStorage.removeItem('token');
+      console.log("🧹 Hafıza temizlendi.");
+
+      navigation.replace('Login'); 
+      
+    } catch (err) {
+      console.log("❌ Çıkış yaparken hata oluştu:", err);
+      navigation.navigate('Login');
+    }
   };
 
   const progressPercent = ((userStats.hours || 0) % 20) * 5; 
@@ -91,7 +94,12 @@ const Profile = () => {
                     userData.role === 'StkAdmin' ? 'Kurum Yöneticisi 🏢' : 'Gönüllü Kahraman 🌟';
 
   if (loading) {
-    return <ActivityIndicator size="large" color="#0056b3" style={{ flex: 1, justifyContent: 'center' }} />;
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8F9FA' }}>
+        <ActivityIndicator size="large" color="#0056b3" />
+        <Text style={{ marginTop: 10, color: '#666' }}>Profiliniz yükleniyor...</Text>
+      </View>
+    );
   }
 
   return (
@@ -160,7 +168,10 @@ const Profile = () => {
           <Text style={styles.arrow}>›</Text>
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+        <TouchableOpacity 
+          style={styles.logoutBtn} 
+          onPress={handleLogout} 
+        >
           <Text style={styles.logoutText}>🚪 Güvenli Çıkış</Text>
         </TouchableOpacity>
         

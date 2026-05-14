@@ -49,7 +49,6 @@ const AdminPanel = ({ navigation }) => {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1C1C1E" /> 
 
-      {/* HEADER */}
       <View style={styles.darkHeader}>
         <Text style={styles.headerTitle}>Süper Admin</Text>
         <Text style={styles.headerSubtitle}>Platform Yönetim Merkezi</Text>
@@ -96,7 +95,6 @@ const AdminPanel = ({ navigation }) => {
           </View>
         </TouchableOpacity>
 
-        {/* ÇIKIŞ */}
         <TouchableOpacity style={[styles.menuCard, {marginTop: 20}]} onPress={handleLogout}>
           <View style={[styles.iconWrapper, { backgroundColor: '#FFEBEE' }]}>
             <Text style={styles.menuIcon}>🚪</Text>

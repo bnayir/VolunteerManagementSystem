@@ -86,7 +86,11 @@ const MyApplications = ({ navigation }) => {
       <StatusBar barStyle="light-content" backgroundColor="#007AFF" />
       
       <View style={styles.headerSection}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Text style={styles.backBtnText}>‹</Text>
+        </TouchableOpacity>
         <Text style={styles.title}>Başvurularım</Text>
+        <View style={{ width: 30 }} /> 
       </View>
 
       <View style={styles.filterBar}>
@@ -139,15 +143,29 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FA' },
   headerSection: { 
     backgroundColor: '#007AFF', 
-    paddingTop: 20,
-    paddingBottom: 25, 
+    paddingTop: 40, 
+    paddingBottom: 20, 
+    paddingHorizontal: 20,
     borderBottomLeftRadius: 25, 
     borderBottomRightRadius: 25,
     elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
-    shadowRadius: 4
+    shadowRadius: 4,
+    flexDirection: 'row', 
+    alignItems: 'center',
+    justifyContent: 'space-between'
+  },
+  backBtn: { 
+    width: 30,
+    justifyContent: 'center',
+  },
+  backBtnText: { 
+    color: '#fff', 
+    fontSize: 40, 
+    fontWeight: '300',
+    marginTop: -8 
   },
   title: { 
     fontSize: 22, 
