@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, Dimensions, Animate
 
 const { width, height } = Dimensions.get('window');
 
-// Tanıtım Sayfaları Verisi
 const SLIDES = [
   {
     id: '1',
@@ -33,15 +32,24 @@ const Onboarding = ({ navigation }) => {
   const scrollX = useRef(new Animated.Value(0)).current;
   const slidesRef = useRef(null);
 
-  const viewableItemsChanged = useRef(({ viewableItems }) => {
-    setCurrentIndex(viewableItems[0].index);
+  const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
+
+  const updateCurrentSlideIndex = useRef(({ viewableItems }) => {
+    if (viewableItems && viewableItems.length > 0 && viewableItems[0].index !== null) {
+      setCurrentIndex(viewableItems[0].index);
+    }
   }).current;
 
   const handleNext = () => {
-    if (currentIndex < SLIDES.length - 1) {
-      slidesRef.current.scrollToIndex({ index: currentIndex + 1 });
+    const nextSlideIndex = currentIndex + 1;
+    
+    if (nextSlideIndex < SLIDES.length) {
+        if (slidesRef?.current) {
+             slidesRef.current.scrollToIndex({ index: nextSlideIndex, animated: true });
+        }
+        setCurrentIndex(nextSlideIndex);
     } else {
-      navigation.replace('Login'); // Son sayfada Login'e gönder
+        navigation.replace('Login'); 
     }
   };
 
@@ -58,20 +66,19 @@ const Onboarding = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <FlatList
+        ref={slidesRef} 
         data={SLIDES}
         renderItem={renderItem}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], { useNativeDriver: false })}
-        onViewableItemsChanged={viewableItemsChanged}
-        ref={slidesRef}
+        onViewableItemsChanged={updateCurrentSlideIndex} 
+        viewabilityConfig={viewabilityConfig}
         keyExtractor={(item) => item.id}
       />
 
-      {/* Alt Kontrol Alanı (Noktalar ve Buton) */}
       <View style={styles.footer}>
-        {/* Sayfa Göstergeleri (Noktalar) */}
         <View style={styles.indicatorContainer}>
           {SLIDES.map((_, i) => {
             const opacity = scrollX.interpolate({
@@ -83,7 +90,6 @@ const Onboarding = ({ navigation }) => {
           })}
         </View>
 
-        {/* Dinamik Buton */}
         <TouchableOpacity style={styles.btn} onPress={handleNext}>
           <Text style={styles.btnText}>
             {currentIndex === SLIDES.length - 1 ? 'Hadi Başlayalım!' : 'Sonraki'}

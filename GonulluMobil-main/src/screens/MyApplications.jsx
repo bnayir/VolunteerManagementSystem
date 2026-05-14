@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   View, Text, FlatList, StyleSheet, 
-  RefreshControl, ActivityIndicator, TouchableOpacity 
+  RefreshControl, ActivityIndicator, TouchableOpacity, SafeAreaView, StatusBar
 } from 'react-native';
 import api from '../../services/api';
 
@@ -20,16 +20,18 @@ const MyApplications = ({ navigation }) => {
   }, [navigation]);
 
   const fetchMyApplications = async () => {
-    setLoading(true);
+    if (!refreshing) setLoading(true);
     try {
-      
       const res = await api.get('/Application/my-applications'); 
+      console.log("Gelen Veri:", res.data); 
       
-      setAllApplications(res.data);
+      const data = res.data || [];
+      setAllApplications(data);
+      
       if (activeFilter === 'All') {
-        setFilteredApplications(res.data); 
+        setFilteredApplications(data); 
       } else {
-        setFilteredApplications(res.data.filter(item => item.status === activeFilter));
+        setFilteredApplications(data.filter(item => item.status === activeFilter));
       }
     } catch (err) {
       console.log("Başvuru çekme hatası:", err);
@@ -51,32 +53,38 @@ const MyApplications = ({ navigation }) => {
 
   const getStatusStyle = (status) => {
     switch (status) {
-      case 'Approved': return { color: '#4CD964', bg: '#E8F9ED', text: 'Onaylandı' };
-      case 'Pending': return { color: '#FF9500', bg: '#FFF4E5', text: 'İnceleniyor' };
-      case 'Rejected': return { color: '#FF3B30', bg: '#FFEBEB', text: 'Reddedildi' };
-      default: return { color: '#8E8E93', bg: '#F2F2F7', text: 'Beklemede' };
+      case 'Accepted': 
+        return { color: '#2ecc71', bg: '#eafaf1', text: 'Onaylandı' };
+      case 'Pending': 
+        return { color: '#f39c12', bg: '#fef5e7', text: 'Bekliyor' };
+      case 'Rejected': 
+        return { color: '#e74c3c', bg: '#fdedec', text: 'Reddedildi' };
+      default: 
+        return { color: '#95a5a6', bg: '#f4f6f6', text: 'Bilinmiyor' };
     }
   };
 
   const renderItem = ({ item }) => {
-    const status = getStatusStyle(item.status);
+    const style = getStatusStyle(item.status);
     return (
       <View style={styles.appCard}>
         <View style={styles.cardInfo}>
-          <Text style={styles.eventTitle}>{item.eventName || "Gönüllülük Etkinliği"}</Text>
+          <Text style={styles.eventTitle}>{item.event?.name || item.eventName || "Gönüllülük Etkinliği"}</Text>
           <Text style={styles.eventDate}>
-            📅 {item.eventDate ? new Date(item.eventDate).toLocaleDateString('tr-TR') : new Date().toLocaleDateString('tr-TR')}
+            📅 {item.appliedDate ? new Date(item.appliedDate).toLocaleDateString('tr-TR') : "Tarih Belirtilmemiş"}
           </Text>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
-          <Text style={[styles.statusText, { color: status.color }]}>{status.text}</Text>
+        <View style={[styles.statusBadge, { backgroundColor: style.bg }]}>
+          <Text style={[styles.statusText, { color: style.color }]}>{style.text}</Text>
         </View>
       </View>
     );
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#007AFF" />
+      
       <View style={styles.headerSection}>
         <Text style={styles.title}>Başvurularım</Text>
       </View>
@@ -90,10 +98,10 @@ const MyApplications = ({ navigation }) => {
         </TouchableOpacity>
 
         <TouchableOpacity 
-          style={[styles.filterBtn, activeFilter === 'Approved' && styles.filterBtnActive]} 
-          onPress={() => filterData('Approved')}
+          style={[styles.filterBtn, activeFilter === 'Accepted' && styles.filterBtnActive]} 
+          onPress={() => filterData('Accepted')}
         >
-          <Text style={[styles.filterBtnText, activeFilter === 'Approved' && styles.filterBtnTextActive]}>Onaylanan</Text>
+          <Text style={[styles.filterBtnText, activeFilter === 'Accepted' && styles.filterBtnTextActive]}>Onaylanan</Text>
         </TouchableOpacity>
 
         <TouchableOpacity 
@@ -123,35 +131,68 @@ const MyApplications = ({ navigation }) => {
           renderItem={renderItem} 
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FA' },
-  
   headerSection: { 
     backgroundColor: '#007AFF', 
-    padding: 30, 
-    paddingTop: 25, 
-    borderBottomLeftRadius: 20, 
-    borderBottomRightRadius: 20,
-    elevation: 4
+    paddingTop: 20,
+    paddingBottom: 25, 
+    borderBottomLeftRadius: 25, 
+    borderBottomRightRadius: 25,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4
   },
   title: { 
-    fontSize: 24, 
+    fontSize: 22, 
     fontWeight: 'bold', 
     color: '#fff',
     textAlign: 'center' 
   },
-  filterBtn: { paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20, backgroundColor: '#F1F3F5' },
-  filterBtnActive: { backgroundColor: '#007AFF' },
-  filterBtnText: { color: '#666', fontWeight: 'bold', fontSize: 13 },
-  filterBtnTextActive: { color: '#fff' },
+  filterBar: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-around', 
+    paddingVertical: 15, 
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee'
+  },
+  filterBtn: { 
+    paddingHorizontal: 16, 
+    paddingVertical: 8, 
+    borderRadius: 20, 
+    backgroundColor: '#F1F3F5' 
+  },
+  filterBtnActive: { 
+    backgroundColor: '#007AFF' 
+  },
+  filterBtnText: { 
+    color: '#666', 
+    fontWeight: 'bold', 
+    fontSize: 13 
+  },
+  filterBtnTextActive: { 
+    color: '#fff' 
+  },
   appCard: { 
-    backgroundColor: '#fff', borderRadius: 15, padding: 20, marginBottom: 12, 
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    elevation: 2
+    backgroundColor: '#fff', 
+    borderRadius: 15, 
+    padding: 18, 
+    marginBottom: 12, 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2
   },
   cardInfo: { flex: 1, marginRight: 10 },
   eventTitle: { fontSize: 16, fontWeight: 'bold', color: '#2C3E50' },
@@ -160,7 +201,7 @@ const styles = StyleSheet.create({
   statusText: { fontSize: 11, fontWeight: 'bold' },
   emptyContainer: { alignItems: 'center', marginTop: 100 },
   emptyEmoji: { fontSize: 50, marginBottom: 10 },
-  emptyText: { color: '#999', fontSize: 14 }
+  emptyText: { color: '#999', fontSize: 15, fontWeight: '500' }
 });
 
 export default MyApplications;

@@ -5,7 +5,6 @@ import {
 } from 'react-native';
 import api from '../../services/api';
 
-// 🌟 İŞTE BURAYA ({ navigation }) EKLENDİ 🌟
 const Explore = ({ navigation }) => {
   const [events, setEvents] = useState([]);
   const [filteredEvents, setFilteredEvents] = useState([]);
@@ -66,7 +65,6 @@ const Explore = ({ navigation }) => {
   };
 
   const renderItem = ({ item }) => (
-    // 🌟 KARTIN TAMAMINI TIKLANABİLİR YAPTIK VE DETAY SAYFASINA YÖNLENDİRDİK
     <TouchableOpacity 
       style={styles.card}
       activeOpacity={0.8}

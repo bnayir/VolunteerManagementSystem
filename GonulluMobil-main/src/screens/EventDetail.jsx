@@ -19,14 +19,12 @@ const EventDetail = ({ route, navigation }) => {
     }
   };
 
-  // 🌟 TEMSİLİ GÖRSEL: Gönüllülerin ellerini birleştirdiği yüksek kaliteli bir fotoğraf
   const defaultImage = "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=800&q=80";
 
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         
-        {/* 🌟 YENİ: Emoji yerine gerçekçi ve şık görsel alanı */}
         <Image 
           source={{ uri: event.imageUrl || defaultImage }} 
           style={styles.headerImage}

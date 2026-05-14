@@ -1,131 +1,135 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, ActivityIndicator } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { 
+  View, Text, StyleSheet, TouchableOpacity, 
+  ScrollView, SafeAreaView, Alert, ActivityIndicator 
+} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 import api from '../../services/api';
 
 const StkDashboard = ({ navigation }) => {
-  const [stkStats, setStkStats] = useState({ myEvents: 0, newApps: 0 });
+  const [adverts, setAdverts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      fetchStkData();
-    });
-    return unsubscribe;
-  }, [navigation]);
+  const handleLogout = async () => {
+    await AsyncStorage.clear();
+    navigation.replace('Login');
+  };
 
-  const fetchStkData = async () => {
+  useFocusEffect(
+    useCallback(() => {
+      fetchMyAdverts();
+    }, [])
+  );
+
+
+  const fetchMyAdverts = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const res = await api.get('/Event/my-events'); 
-      setStkStats({
-        myEvents: res.data.length,
-        newApps: res.data.reduce((total, event) => total + (event.pendingCount || 0), 0)
-      });
+      const response = await api.get('/Event/my-events'); 
+      setAdverts(response.data || []);
     } catch (err) {
-      console.log("STK veri hatası:", err);
-      setStkStats({ myEvents: 3, newApps: 5 });
+      console.log("İlanları çekerken hata:", err.response?.data || err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogout = async () => {
-    await AsyncStorage.clear();
-    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
-  };
-
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0056b3" />
-      
-      {/* Mavi Kurumsal Header */}
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Kurum Yönetim Paneli</Text>
-        <Text style={styles.headerSubtitle}>Etkinliklerinizi ve başvurularınızı buradan yönetin.</Text>
+        <Text style={styles.headerTitle}>STK Yönetim Paneli</Text>
+        <TouchableOpacity onPress={handleLogout}>
+          <Text style={styles.logoutText}>Çıkış</Text>
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <Text style={styles.statNumber}>{stkStats.myEvents}</Text>
-          <Text style={styles.statLabel}>Etkinliklerim</Text>
+      <ScrollView contentContainerStyle={styles.content}>
+        <Text style={styles.welcome}>Hoş Geldiniz! 🏢</Text>
+        <Text style={styles.subtitle}>Kurumunuzun faaliyetlerini buradan yönetebilirsiniz.</Text>
+
+        <View style={styles.grid}>
+          <TouchableOpacity 
+            style={styles.card} 
+            onPress={() => navigation.navigate('CreateAdvert')}
+          >
+            <Text style={styles.cardIcon}>📢</Text>
+            <Text style={styles.cardTitle}>Yeni İlan Ver</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+  style={styles.menuCard} 
+  onPress={() => navigation.navigate('StkEvents')} 
+>
+   <Text style={styles.cardIcon}>📩</Text>
+            <Text style={styles.cardTitle}>Başvurular</Text>
+</TouchableOpacity>
+
+
+          <TouchableOpacity style={styles.card}>
+            <Text style={styles.cardIcon}>📊</Text>
+            <Text style={styles.cardTitle}>İstatistikler</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.card}>
+            <Text style={styles.cardIcon}>⚙️</Text>
+            <Text style={styles.cardTitle}>Kurum Profili</Text>
+          </TouchableOpacity>
         </View>
-        <View style={styles.statCard}>
-          <Text style={[styles.statNumber, {color: '#FF9500'}]}>{stkStats.newApps}</Text>
-          <Text style={styles.statLabel}>Yeni Başvuru</Text>
+
+        <View style={styles.advertsSection}>
+          <Text style={styles.sectionTitle}>Son İlanlarım</Text>
+          
+          {loading ? (
+            <ActivityIndicator size="large" color="#007AFF" style={{marginTop: 20}} />
+          ) : adverts.length === 0 ? (
+            <View style={styles.emptyBox}>
+              <Text style={styles.emptyText}>Henüz hiç ilan vermediniz. 🤷‍♂️</Text>
+            </View>
+          ) : (
+            adverts.map((ilan, index) => (
+              <View key={index} style={styles.advertCard}>
+                <View style={styles.advertHeader}>
+                  <Text style={styles.advertTitle}>{ilan.title || "Başlıksız İlan"}</Text>
+                  <View style={styles.statusBadge}>
+                    <Text style={styles.statusText}>{ilan.status === 'Active' ? 'Aktif' : 'Pasif'}</Text>
+                  </View>
+                </View>
+                <Text style={styles.advertLocation}>📍 {ilan.location || "Konum belirtilmemiş"}</Text>
+                <Text style={styles.advertDesc} numberOfLines={2}>{ilan.description}</Text>
+              </View>
+            ))
+          )}
         </View>
-      </View>
-
-      <ScrollView style={styles.menuList} showsVerticalScrollIndicator={false}>
-        <Text style={styles.sectionTitle}>Hızlı İşlemler</Text>
-
-        <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('CreateEvent')}>
-          <View style={[styles.iconCircle, {backgroundColor: '#E3F2FD'}]}>
-            <Text style={styles.menuIcon}>📝</Text>
-          </View>
-          <View style={styles.menuTextContent}>
-            <Text style={styles.menuTitle}>Yeni Etkinlik Oluştur</Text>
-            <Text style={styles.menuDesc}>Gönüllü ihtiyacını sisteme girin</Text>
-          </View>
-          <Text style={styles.arrow}>›</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('ManageApplications')}>
-          <View style={[styles.iconCircle, {backgroundColor: '#FFF3E0'}]}>
-            <Text style={styles.menuIcon}>👥</Text>
-          </View>
-          <View style={styles.menuTextContent}>
-            <Text style={styles.menuTitle}>Gelen Başvurular</Text>
-            <Text style={styles.menuDesc}>Gönüllü taleplerini onaylayın</Text>
-          </View>
-          <Text style={styles.arrow}>›</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Profile')}>
-          <View style={[styles.iconCircle, {backgroundColor: '#E8F5E9'}]}>
-            <Text style={styles.menuIcon}>🏢</Text>
-          </View>
-          <View style={styles.menuTextContent}>
-            <Text style={styles.menuTitle}>Kurum Bilgileri</Text>
-            <Text style={styles.menuDesc}>Profilinizi ve logonuzu düzenleyin</Text>
-          </View>
-          <Text style={styles.arrow}>›</Text>
-        </TouchableOpacity>
-
-        {/* 🌟 HATA DÜZELTİLEN KISIM BURASI */}
-        <TouchableOpacity style={[styles.menuItem, {marginTop: 20}]} onPress={handleLogout}>
-          <View style={[styles.iconCircle, {backgroundColor: '#FFEBEE'}]}>
-            <Text style={styles.menuIcon}>🚪</Text>
-          </View>
-          <View style={styles.menuTextContent}>
-            <Text style={[styles.menuTitle, {color: '#D32F2F'}]}>Oturumu Kapat</Text>
-          </View>
-        </TouchableOpacity>
-        {/* 🌟 -------------------------------- */}
-
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FA' },
-  header: { backgroundColor: '#0056b3', padding: 30, paddingTop: 60, borderBottomLeftRadius: 30, borderBottomRightRadius: 30 },
-  headerTitle: { color: '#fff', fontSize: 22, fontWeight: 'bold' },
-  headerSubtitle: { color: '#E3F2FD', fontSize: 13, marginTop: 5 },
-  statsRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: -30, paddingHorizontal: 20 },
-  statCard: { backgroundColor: '#fff', width: '45%', padding: 20, borderRadius: 15, alignItems: 'center', elevation: 5 },
-  statNumber: { fontSize: 24, fontWeight: 'bold', color: '#0056b3' },
-  statLabel: { fontSize: 12, color: '#666', marginTop: 5 },
-  menuList: { padding: 20 },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 15 },
-  menuItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 15, borderRadius: 15, marginBottom: 12, elevation: 2 },
-  iconCircle: { width: 45, height: 45, borderRadius: 22.5, justifyContent: 'center', alignItems: 'center', marginRight: 15 },
-  menuIcon: { fontSize: 20 },
-  menuTextContent: { flex: 1 },
-  menuTitle: { fontSize: 15, fontWeight: 'bold', color: '#333' },
-  menuDesc: { fontSize: 12, color: '#888', marginTop: 2 },
-  arrow: { fontSize: 20, color: '#CCC' }
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 50, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#EEE' },
+  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#1C1C1E' },
+  logoutText: { color: '#FF3B30', fontWeight: 'bold' },
+  content: { padding: 20 },
+  welcome: { fontSize: 24, fontWeight: 'bold', color: '#1C1C1E' },
+  subtitle: { fontSize: 14, color: '#8E8E93', marginTop: 5, marginBottom: 25 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  card: { width: '48%', backgroundColor: '#fff', padding: 20, borderRadius: 15, alignItems: 'center', marginBottom: 15, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
+  cardIcon: { fontSize: 35, marginBottom: 10 },
+  cardTitle: { fontSize: 14, fontWeight: 'bold', color: '#3A3A3C', textAlign: 'center' },
+  
+  advertsSection: { marginTop: 20 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#1C1C1E', marginBottom: 15 },
+  emptyBox: { padding: 20, backgroundColor: '#fff', borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: '#EEE', borderStyle: 'dashed' },
+  emptyText: { color: '#8E8E93', fontSize: 15 },
+  advertCard: { backgroundColor: '#fff', padding: 15, borderRadius: 12, marginBottom: 15, borderWidth: 1, borderColor: '#E5E5EA' },
+  advertHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
+  advertTitle: { fontSize: 16, fontWeight: 'bold', color: '#1C1C1E', flex: 1, marginRight: 10 },
+  statusBadge: { backgroundColor: '#E3F2FD', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  statusText: { color: '#007AFF', fontSize: 12, fontWeight: 'bold' },
+  advertLocation: { fontSize: 13, color: '#34C759', fontWeight: '600', marginBottom: 5 },
+  advertDesc: { fontSize: 14, color: '#666', lineHeight: 20 }
 });
 
 export default StkDashboard;

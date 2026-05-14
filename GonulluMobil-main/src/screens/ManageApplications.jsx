@@ -1,159 +1,191 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { 
+  View, Text, StyleSheet, FlatList, TouchableOpacity, 
+  Alert, ActivityIndicator, RefreshControl 
+} from 'react-native';
 import api from '../../services/api';
 
 const ManageApplications = ({ navigation }) => {
-  const [applications, setApplications] = useState([]);
+  const [organizations, setOrganizations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    fetchPendingApplications();
+    fetchPendingOrgs();
   }, []);
 
-  const fetchPendingApplications = async () => {
-    setLoading(true);
+  const fetchPendingOrgs = async () => {
     try {
-      // Not: Backend'de tüm bekleyenleri getiren genel bir endpoint varsa buraya yazabiliriz.
-      // Şimdilik sistemin hata vermemesi için simüle edilmiş gerçekçi verilerle başlatıyoruz.
-      // İleride burayı api.get('/Admin/pending-applications') şeklinde bağlayabilirsin.
-      
-      const mockData = [
-        { id: 1, volunteerName: 'Ali Yılmaz', eventName: 'Sahil Temizliği', date: '12 Mayıs 2026', status: 'Pending' },
-        { id: 2, volunteerName: 'Ayşe Demir', eventName: 'Barınak Ziyareti', date: '14 Mayıs 2026', status: 'Pending' },
-        { id: 3, volunteerName: 'Caner Kaya', eventName: 'Kütüphane Düzenlemesi', date: '15 Mayıs 2026', status: 'Pending' },
-      ];
-      setApplications(mockData);
+      const res = await api.get('/Admin/pending-organizations');
+      setOrganizations(res.data || []);
     } catch (err) {
-      console.log("Başvuru çekme hatası:", err);
+      console.log("Liste çekme hatası:", err.message);
+      Alert.alert("Hata", "Bekleyen kurumlar listesi alınamadı.");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const handleStatusUpdate = async (appId, newStatus) => {
-    const statusText = newStatus === 'Approved' ? 'Onaylamak' : 'Reddetmek';
+ const handleUpdateStatus = async (orgId, isApproved) => {
+    console.log("Butona basıldı! Gelen Kurum ID:", orgId); 
     
-    Alert.alert(
-      "İşlem Onayı", 
-      `Bu başvuruyu ${statusText} istediğinize emin misiniz?`, 
-      [
-        { text: "İptal", style: "cancel" },
-        { 
-          text: "Evet, İşlemi Yap", 
-          onPress: async () => {
-            try {
-              // 🌟 SENİN C# BACKEND KODUN ÇALIŞIYOR
-              // [HttpPost("update-status/{id}")] metoduna string gönderiyoruz
-              await api.post(`/Application/update-status/${appId}`, `"${newStatus}"`, {
-                headers: { 'Content-Type': 'application/json' }
-              });
+    if (!orgId) {
+      Alert.alert("Hata", "Kurumun ID bilgisi bulunamadı. Lütfen sayfayı yenileyin.");
+      return;
+    }
 
-              Alert.alert("Başarılı", `Başvuru ${newStatus === 'Approved' ? 'Onaylandı ✅' : 'Reddedildi ❌'}`);
-              
-              // İşlem yapılan kartı ekrandan anında kaldırıyoruz
-              setApplications(prev => prev.filter(app => app.id !== appId));
-              
-            } catch (err) {
-              // Eğer backend henüz bağlı değilse sunumda çalışsın diye simülasyon:
-              Alert.alert("Sistem Mesajı", `Başvuru ${newStatus === 'Approved' ? 'Onaylandı ✅' : 'Reddedildi ❌'} (Simülasyon)`);
-              setApplications(prev => prev.filter(app => app.id !== appId));
-            }
-          }
-        }
-      ]
+    const statusValue = isApproved ? "Approved" : "Rejected";
+
+    try {
+      console.log("İstek gönderiliyor: /Admin/update-status", { OrganizationId: orgId, NewStatus: statusValue });
+      
+      const response = await api.post('/Admin/update-status', {
+        OrganizationId: orgId, 
+        NewStatus: statusValue
+      });
+      
+      console.log("Sunucu yanıt verdi! ✅", response.data);
+      Alert.alert("Başarılı! 🎉", `Kurum ${isApproved ? "Onaylandı" : "Reddedildi"}.`);
+      fetchPendingOrgs(); 
+    } catch (err) {
+      console.log("İstek HATA verdi! ❌", err.response?.data || err.message);
+      Alert.alert("Hata", "Sunucu isteği reddetti. Terminale bakınız.");
+    }
+  };
+  const renderItem = ({ item }) => {
+    
+    // 🌟 İŞTE BİZE GERÇEĞİ SÖYLEYECEK OLAN SATIR:
+    console.log("🧐 BİR KURUM OBJESİNİN İÇİ:", item);
+
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <View style={styles.iconCircle}>
+            <Text style={styles.iconText}>🏢</Text>
+          </View>
+          <View style={styles.headerText}>
+            <Text style={styles.orgName}>{item.name || item.organizationName || "İsimsiz Kurum"}</Text>
+            <Text style={styles.orgEmail}>{item.email || "E-posta yok"}</Text>
+          </View>
+        </View>
+
+        <View style={styles.divider} />
+
+        <View style={styles.details}>
+          <Text style={styles.detailText}>📌 <Text style={{fontWeight: 'bold'}}>Vergi No:</Text> {item.taxNumber || 'Belirtilmemiş'}</Text>
+          <Text style={styles.detailText}>📞 <Text style={{fontWeight: 'bold'}}>Telefon:</Text> {item.phoneNumber || 'Yok'}</Text>
+        </View>
+
+        <View style={styles.actionButtons}>
+          <TouchableOpacity 
+            style={[styles.btn, styles.rejectBtn]} 
+            onPress={() => handleUpdateStatus(item.id, false)}
+          >
+            <Text style={styles.rejectBtnText}>REDDET</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.btn, styles.approveBtn]} 
+            onPress={() => handleUpdateStatus(item.id, true)}
+          >
+            <Text style={styles.approveBtnText}>ONAYLA</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     );
   };
-
-  const renderItem = ({ item }) => (
-    <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{item.volunteerName.charAt(0)}</Text>
-        </View>
-        <View style={styles.userInfo}>
-          <Text style={styles.volunteerName}>{item.volunteerName}</Text>
-          <Text style={styles.dateText}>Başvuru: {item.date}</Text>
-        </View>
-        <View style={styles.badgePending}>
-          <Text style={styles.badgeText}>Bekliyor</Text>
-        </View>
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={{marginTop: 10, color: '#666'}}>Kurumlar yükleniyor...</Text>
       </View>
-
-      <Text style={styles.eventName}>📍 Etkinlik: {item.eventName}</Text>
-
-      <View style={styles.actionButtons}>
-        <TouchableOpacity 
-          style={[styles.btn, styles.rejectBtn]} 
-          onPress={() => handleStatusUpdate(item.id, 'Rejected')}
-        >
-          <Text style={styles.btnText}>Reddet ❌</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.btn, styles.approveBtn]} 
-          onPress={() => handleStatusUpdate(item.id, 'Approved')}
-        >
-          <Text style={styles.btnText}>Onayla ✅</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+    );
+  }
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backBtnText}>{"< Geri"}</Text>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.backIcon}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Başvuruları Yönet</Text>
+        <Text style={styles.headerTitle}>Kurum Kayıt Talepleri</Text>
+        <View style={{ width: 40 }} /> 
       </View>
-
-      {loading ? (
-        <ActivityIndicator size="large" color="#007AFF" style={{ marginTop: 50 }} />
-      ) : (
-        <FlatList 
-          data={applications}
-          keyExtractor={item => item.id.toString()}
-          contentContainerStyle={{ padding: 15, paddingBottom: 30 }}
-          renderItem={renderItem}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyEmoji}>🎉</Text>
-              <Text style={styles.emptyText}>Bekleyen yeni başvuru yok!</Text>
-              <Text style={styles.emptySubText}>Tüm işlemleri tamamladınız.</Text>
-            </View>
-          }
-        />
-      )}
+      
+      <FlatList
+        data={organizations}
+        renderItem={renderItem}
+keyExtractor={(item) => (item.eventId ? item.eventId.toString() : Math.random().toString())}        contentContainerStyle={styles.listPadding}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => {setRefreshing(true); fetchPendingOrgs();}} />
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>Şu an onay bekleyen bir kurum bulunmuyor. 🎉</Text>
+          </View>
+        }
+      />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F0F2F5' },
-  header: { backgroundColor: '#1C1C1E', padding: 20, paddingTop: 50, flexDirection: 'row', alignItems: 'center' },
-  backBtn: { paddingRight: 15 },
-  backBtnText: { color: '#007AFF', fontSize: 16, fontWeight: 'bold' },
-  headerTitle: { color: '#fff', fontSize: 20, fontWeight: 'bold', marginLeft: 10 },
-  card: { backgroundColor: '#fff', padding: 15, borderRadius: 15, marginBottom: 15, elevation: 3 },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#E3F2FD', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  avatarText: { fontSize: 18, fontWeight: 'bold', color: '#007AFF' },
-  userInfo: { flex: 1 },
-  volunteerName: { fontSize: 16, fontWeight: 'bold', color: '#333' },
-  dateText: { fontSize: 12, color: '#888', marginTop: 2 },
-  badgePending: { backgroundColor: '#FFF4E5', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
-  badgeText: { color: '#FF9500', fontSize: 12, fontWeight: 'bold' },
-  eventName: { fontSize: 15, color: '#444', fontWeight: '500', marginBottom: 20, paddingLeft: 5 },
+  container: { flex: 1, backgroundColor: '#F2F2F7' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 15,
+    paddingTop: 45, 
+    paddingBottom: 15,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5EA',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 20,
+    backgroundColor: '#F2F2F7',
+  },
+  backIcon: {
+    fontSize: 30,
+    color: '#007AFF',
+    fontWeight: '300',
+    marginTop: -4,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1C1C1E',
+  },
+  listPadding: { paddingHorizontal: 20, paddingVertical: 20 },
+  card: { backgroundColor: '#fff', borderRadius: 15, padding: 15, marginBottom: 15, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 5 },
+  cardHeader: { flexDirection: 'row', alignItems: 'center' },
+  iconCircle: { width: 45, height: 45, borderRadius: 22.5, backgroundColor: '#E3F2FD', justifyContent: 'center', alignItems: 'center' },
+  iconText: { fontSize: 20 },
+  headerText: { marginLeft: 12 },
+  orgName: { fontSize: 17, fontWeight: 'bold', color: '#1C1C1E' },
+  orgEmail: { fontSize: 13, color: '#8E8E93', marginTop: 2 },
+  divider: { height: 1, backgroundColor: '#F2F2F7', marginVertical: 12 },
+  details: { marginBottom: 15 },
+  detailText: { fontSize: 14, color: '#3C3C43', marginBottom: 4 },
   actionButtons: { flexDirection: 'row', justifyContent: 'space-between' },
   btn: { flex: 0.48, paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
-  rejectBtn: { backgroundColor: '#FFEBEE', borderWidth: 1, borderColor: '#FFCdd2' },
-  approveBtn: { backgroundColor: '#E8F9ED', borderWidth: 1, borderColor: '#C8E6C9' },
-  btnText: { fontWeight: 'bold', fontSize: 14, color: '#333' },
-  emptyContainer: { alignItems: 'center', marginTop: 100 },
-  emptyEmoji: { fontSize: 60, marginBottom: 15 },
-  emptyText: { fontSize: 18, fontWeight: 'bold', color: '#555' },
-  emptySubText: { fontSize: 14, color: '#999', marginTop: 5 }
+  approveBtn: { backgroundColor: '#34C759' },
+  rejectBtn: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#FF3B30' },
+  approveBtnText: { color: '#fff', fontWeight: 'bold' },
+  rejectBtnText: { color: '#FF3B30', fontWeight: 'bold' },
+  emptyContainer: { alignItems: 'center', marginTop: 50 },
+  emptyText: { color: '#8E8E93', fontSize: 16, textAlign: 'center' }
 });
 
 export default ManageApplications;
